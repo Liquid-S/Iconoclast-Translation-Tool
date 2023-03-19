@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarhl" Version="3.0.0-alpha07" />
+    <PackageReference Include="Yarhl.Media" Version="3.0.0-alpha07" />
+  </ItemGroup>
+
+</Project>
