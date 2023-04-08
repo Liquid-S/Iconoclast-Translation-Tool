@@ -8,9 +8,9 @@ namespace ConfigFile
     {
         private readonly string configPath;
         public MainSettings Options;
-        public Main(string JsonPath = "AppSettings.json")
+        public Main(string jsonPath = "AppSettings.json")
         {
-            configPath = JsonPath;
+            configPath = jsonPath;
 
             LoadFile();
             System.Threading.Thread.Sleep(4000);

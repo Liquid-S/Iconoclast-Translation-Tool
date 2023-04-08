@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Yarhl.FileFormat;
 using Yarhl.IO;
 using Yarhl.Media.Text;
@@ -21,16 +23,16 @@ namespace Iconoclast
             ReadPo(poFile);
         }
 
-        public PoFormat(List<string> Speak, List<string> Senten, List<string> GameC)
+        public PoFormat(List<string> speak, List<string> senten, List<string> gameC)
         {
-            Speakers = Speak;
-            Sentences = Senten;
-            GameCode = GameC;
+            Speakers = speak;
+            Sentences = senten;
+            GameCode = gameC;
         }
 
         private void ReadPo(string PoFilePosition)
         {
-            string fileName = Path.GetFileNameWithoutExtension(PoFilePosition);
+            //string fileName = Path.GetFileNameWithoutExtension(PoFilePosition);
 
             Po poFile = null;
 
@@ -75,11 +77,11 @@ namespace Iconoclast
             }
         }
 
-        public void MakePo(string DestinationDir = "Extracted text")
+        public void MakePo(string destinationDir = "Extracted text")
         {
-            if (!Directory.Exists(DestinationDir))
+            if (!Directory.Exists(destinationDir))
             {
-                Directory.CreateDirectory(DestinationDir);
+                Directory.CreateDirectory(destinationDir);
             }
 
             //Read the language used by the user' OS, this way the editor can spellcheck the translation.
@@ -95,16 +97,10 @@ namespace Iconoclast
                 PoEntry entry = new PoEntry();
 
                 // Print the "Speaker".
-                if (Speakers[i] != string.Empty)
+                if (i < Speakers.Count)
                 {
-                    if (i < Speakers.Count)
-                    {
-                        entry.Context = $"{i + 1:D4} | {Speakers[i]}";
-                    }
-                    else
-                    {
-                        entry.Context = $"{i + 1:D4} | {"ERROR"}";
-                    }
+                    string name = !string.IsNullOrEmpty(Speakers[i]) ? Speakers[i] : "ERROR";
+                    entry.Context = $"{i + 1:D4} | {name}";
                 }
                 else
                 {
@@ -112,12 +108,14 @@ namespace Iconoclast
                 }
 
                 // Print the original sentence.
-                if (Sentences[i] == "" || Sentences[i] == string.Empty)
+                if (string.IsNullOrEmpty(Sentences[i]))
                 {
                     entry.Original = "[EMPTY_LINE]";
                     entry.Translated = "[EMPTY_LINE]";
                 }
-                else if (Sentences[i].Length == 1 || Sentences[i] == " \n" || Sentences[i] == "\n" || Sentences[i] == "..." || Sentences[i] == "…" || Sentences[i] == "...\n" || Sentences[i] == "…\n" || Sentences[i] == "\"...\"" || Sentences[i] == "\"…\"" || Sentences[i] == "\"...\n\"" || Sentences[i] == "\"…\n\"")
+                else if (Sentences[i].Length == 1 || Sentences[i] == " \n" || Sentences[i] == "\n" || Sentences[i] == "..."
+                      || Sentences[i] == "…" || Sentences[i] == "...\n" || Sentences[i] == "…\n" || Sentences[i] == "\"...\""
+                      || Sentences[i] == "\"…\"" || Sentences[i] == "\"...\n\"" || Sentences[i] == "\"…\n\"")
                 {
                     entry.Original = Sentences[i];
                     entry.Translated = Sentences[i];
@@ -130,9 +128,10 @@ namespace Iconoclast
                 // Print the Game Code.
                 if (GameCode != null)
                 {
-                    if (i < GameCode.Count && GameCode[i] != null && GameCode[i] != "")
+                    if (i < GameCode.Count && !string.IsNullOrEmpty(GameCode[i]))
                     {
-                        entry.ExtractedComments = GameCode[i].Replace("\r\n", "\n#. ").Replace("\n\r", "\n#. ").Replace("\n", "\n#. ").Replace("\r", string.Empty); // The repalce is needed, otherwise PoEditor is not going to load correctly the jp text and the Repack is gonna crash.
+                        // The repalce is needed, otherwise PoEditor is not going to load correctly the jp text and the Repack is gonna crash.
+                        entry.ExtractedComments = GameCode[i].Replace("\r\n", "\n#. ").Replace("\n\r", "\n#. ").Replace("\n", "\n#. ").Replace("\r", string.Empty);
                     }
                     else
                     {
@@ -143,9 +142,9 @@ namespace Iconoclast
                 po.Add(entry);
             }
 
-            string NewPOAddress = Path.Combine(DestinationDir, "Iconoclast.po");
+            string newPOAddress = Path.Combine(destinationDir, "Iconoclast.po");
 
-            ((BinaryFormat)ConvertFormat.With<Po2Binary>(po)).Stream.WriteTo(NewPOAddress);
+            ((BinaryFormat)ConvertFormat.With<Po2Binary>(po)).Stream.WriteTo(newPOAddress);
         }
     }
 }

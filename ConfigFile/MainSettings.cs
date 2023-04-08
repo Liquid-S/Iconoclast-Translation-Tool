@@ -13,7 +13,7 @@ namespace ConfigFile
 
         public void GetPoFolderPath()
         {
-            if (PoFolderPath == string.Empty || !Directory.Exists(PoFolderPath) || Directory.GetFiles(PoFolderPath, "*.po", SearchOption.AllDirectories).Length == 0)
+            if (string.IsNullOrEmpty(PoFolderPath) || !Directory.Exists(PoFolderPath) || Directory.GetFiles(PoFolderPath, "*.po", SearchOption.AllDirectories).Length == 0)
             {
                 IO_ASCII.PrintOutput.ErrorMessage($"{PoFolderPath} folder not found or empty!\n");
                 PoFolderPath = IO_ASCII.ReadInput.WaitForFolderPath("PO");

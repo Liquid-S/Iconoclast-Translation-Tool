@@ -7,19 +7,19 @@ namespace IO_ASCII
         /// <summary>
         /// Print an error message.
         /// </summary>
-        /// <param name="Message">The text's message you want to show.</param>
-        public static void ErrorMessage(string Message)
+        /// <param name="message">The text's message you want to show.</param>
+        public static void ErrorMessage(string message)
         {
-            Console.WriteLine($"Error: {Message}\n");
+            Console.WriteLine($"Error: {message}\n");
         }
 
         /// <summary>
         /// Print an "ok" message.
         /// </summary>
-        /// <param name="Message">The text's message you want to show.</param>
-        public static void EventMessage(string Message)
+        /// <param name="message">The text's message you want to show.</param>
+        public static void EventMessage(string message)
         {
-            Console.WriteLine($"{Message}\n");
+            Console.WriteLine($"{message}\n");
         }
     }
 }

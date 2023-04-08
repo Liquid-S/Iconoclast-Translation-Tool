@@ -22,7 +22,7 @@ namespace CLI.ASCII_Interface
         private readonly string[] header = new[]{
                             @"  +----------------------------------------+",
                             @"  |      Iconoclast Translation Tool       |",
-                            @"  |       Version 1.00 (27 MAR 2020)       |",
+                            @"  |       Version 1.01 (08 APR 2023)       |",
                             @"  |              by Liquid S!              |",
                             @"  +----------------------------------------+",
                             @""
@@ -172,14 +172,17 @@ namespace CLI.ASCII_Interface
                     IO_ASCII.PrintOutput.EventMessage("Wait...");
                     Iconoclast.Dia originalDiaFile = new Iconoclast.Dia("dia");
                     Iconoclast.PoFormat filePo = new Iconoclast.PoFormat(originalDiaFile.Speakers, originalDiaFile.Sentences, originalDiaFile.GameCode);
+                    Iconoclast.PoSpeaker newFilePoSpeaker = new Iconoclast.PoSpeaker(originalDiaFile.Speakers);
                     filePo.MakePo();
                     IO_ASCII.PrintOutput.EventMessage("Done!");
                     break;
                 case 2:
                     IO_ASCII.PrintOutput.EventMessage("Wait...");
-                    
+
                     Iconoclast.PoFormat translatedPo = new Iconoclast.PoFormat(System.IO.Path.Combine("Extracted text", "Iconoclast.po"));
-                    Iconoclast.Dia newlDiaFile = new Iconoclast.Dia(translatedPo.Speakers, translatedPo.Sentences, translatedPo.GameCode);
+                    Iconoclast.PoSpeaker filePoSpeaker = new Iconoclast.PoSpeaker();
+                    filePoSpeaker.ReadPo();
+                    Iconoclast.Dia newlDiaFile = new Iconoclast.Dia(translatedPo.Speakers, translatedPo.Sentences, translatedPo.GameCode, filePoSpeaker.TranslateSpeaker);
                     newlDiaFile.BuildDia();
 
                     IO_ASCII.PrintOutput.EventMessage("Done!");

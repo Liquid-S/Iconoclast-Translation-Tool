@@ -5,12 +5,13 @@ namespace Iconoclast
 {
     public class Dia
     {
-        private int nSentences;
         public List<string> Speakers { get; private set; }
         public List<string> Sentences { get; private set; }
         public List<string> GameCode { get; private set; }
 
         private readonly Rosetta Rose;
+
+        private System.Func<string, string> translateSpeaker;
 
         public Dia(string filePath)
         {
@@ -25,11 +26,13 @@ namespace Iconoclast
             }
         }
 
-        public Dia(List<string> Speak, List<string> Senten, List<string> GameC)
+        public Dia(List<string> speak, List<string> senten, List<string> gameC, System.Func<string, string> translateSpeaker)
         {
-            Speakers = Speak;
-            Sentences = Senten;
-            GameCode = GameC;
+            Speakers = speak;
+            Sentences = senten;
+            GameCode = gameC;
+
+            this.translateSpeaker = translateSpeaker;
 
             Rose = new Rosetta("Rosetta.txt");
             BuildDia();
@@ -39,24 +42,24 @@ namespace Iconoclast
         {
             using FileStream DiaFile = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             using BinaryReader Br = new BinaryReader(DiaFile);
-            int sentenceLenght;
+            int sentenceLenght = 0;
 
             DiaFile.Seek(0x06, SeekOrigin.Begin);
 
-            nSentences = Br.ReadInt32();
+            Br.ReadInt32(); //n Sentences
 
             /* File extructure:
-                   MAGIC ID       N Files     UNK - ALWAYS BEFORE SPEAKER LENGTH 
+                 MAGIC ID     | N# Files  | UNK - ALWAYS BEFORE SPEAKER LENGTH 
              41 52 52 31 2E 30|87 10 00 00| 03 00 00 00 01 00
-                              SPEAKER LENGHT    SPEAKER
+               SPEAKER LENGHT | SPEAKER
              00 00 02 00 00 00| 0C 00 00 00| 34 37 7C 36 36 7C
-                                    UNK - ALWAYS BEFORE SENTENCES OR GAME'S INSTRUCTIONS
+                UNK - ALWAYS BEFORE SENTENCES OR GAME'S INSTRUCTIONS
              37 38 7C 37 30 00| 01 00 00 00 02 00 00 00 E7 01
-                            SENTENCE
+                    SENTENCE
              00 00| 7B 62 75 62 30 34 7D 7C 7B 6C 6F 63 6B 7D...
-                                            UNK - ALWAYS BEFORE SENTENCES OR GAME INSTRUCTIONS
+                                       | UNK - ALWAYS BEFORE SENTENCES OR GAME INSTRUCTIONS
              79 65 30 30 7D 7C 31 35 00| 01 00 00 00 02 00 00
-                 G.I. LENGHT  GAME INSTRUCTIONS         UNK - ALWAYS BEFORE SPEAKER LENGTH 
+           G.I.| LENGHT GAME INSTRUCTIONS | UNK - ALWAYS BEFORE SPEAKER LENGTH 
              00| 08 00 00 00| 62 75 74 74 6F 6E 73 00| 03 00 00
              */
 
@@ -90,50 +93,50 @@ namespace Iconoclast
             }
         }
 
-        private string ReadSingleLineFromDia(in FileStream DF, int SentencesLenght, bool isSentence = false, bool isGameCode = false)
+        private string ReadSingleLineFromDia(in FileStream DF, int sentenceLenght, bool isSentence = false, bool isGameCode = false)
         {
-            byte[] tempBuffer = new byte[SentencesLenght - 1];
+            byte[] tempBuffer = new byte[sentenceLenght - 1];
             DF.Read(tempBuffer, 0, tempBuffer.Length);
-            string Sentence = string.Empty;
+            string sentence = string.Empty;
 
             if (!isGameCode)
             {
-                Sentence = "|";
+                sentence = "|";
             }
 
-            Sentence += System.Text.Encoding.Default.GetString(tempBuffer);
+            sentence += System.Text.Encoding.Default.GetString(tempBuffer);
 
             if (!isGameCode)
             {
                 for (int i = Rose.Stone.Length - 1; i >= 0; i--)
                 {
-                    Sentence = Sentence.Replace("|" + i.ToString(), Rose.Stone[i]);
+                    sentence = sentence.Replace("|" + i.ToString(), Rose.Stone[i]);
                 }
 
-                Sentence = Sentence.Replace("\\", "一");
+                sentence = sentence.Replace("\\", "一");
 
                 if (isSentence)
                 {
-                    Sentence = Sentence.Replace("{new}", "\n");
+                    sentence = sentence.Replace("{new}", "\n");
                 }
 
-                return Sentence.Replace("|", null);
+                return sentence.Replace("|", null);
             }
 
-            Sentence = Sentence.Replace("\\", "一");
+            sentence = sentence.Replace("\\", "一");
 
-            return Sentence;
+            return sentence;
         }
 
-        public void BuildDia(string DestinationDir = "Repacked File")
+        public void BuildDia(string destinationDir = "Repacked File")
         {
-            if (!Directory.Exists(DestinationDir))
+            if (!Directory.Exists(destinationDir))
             {
-                Directory.CreateDirectory(DestinationDir);
+                Directory.CreateDirectory(destinationDir);
             }
 
-            using FileStream NewDia = new FileStream(Path.Combine(DestinationDir, "dia"), FileMode.Create, FileAccess.Write);
-            using BinaryWriter Bw = new BinaryWriter(NewDia), BwText = new BinaryWriter(NewDia, System.Text.Encoding.Default);
+            using FileStream newDia = new FileStream(Path.Combine(destinationDir, "dia"), FileMode.Create, FileAccess.Write);
+            using BinaryWriter Bw = new BinaryWriter(newDia), BwText = new BinaryWriter(newDia, System.Text.Encoding.Default);
             char[] tempS;
 
             Bw.Write(0x31525241);
@@ -146,14 +149,14 @@ namespace Iconoclast
                 Bw.Write(0x01);
                 Bw.Write(0x02);
 
-                if (Speakers[i] == null || Speakers[i] == string.Empty)
+                if (string.IsNullOrEmpty(Speakers[i]))
                 {
                     tempS = "".ToCharArray();
                 }
                 else
                 {
-                    string NameTranslated = TranslatedSpeaker(Speakers[i]);
-                    tempS = EncodeString(NameTranslated).ToCharArray();
+                    string nameTranslated = translateSpeaker(Speakers[i]);
+                    tempS = StringEncoder(nameTranslated).ToCharArray();
                 }
 
                 Bw.Write((uint)tempS.Length + 1);
@@ -163,7 +166,7 @@ namespace Iconoclast
                 Bw.Write(0x01);
                 Bw.Write(0x02);
 
-                tempS = EncodeString(Sentences[i]).ToCharArray();
+                tempS = StringEncoder(Sentences[i]).ToCharArray();
                 Bw.Write((uint)tempS.Length + 1);
                 BwText.Write(tempS);
                 Bw.Write((byte)0x0);
@@ -175,97 +178,17 @@ namespace Iconoclast
                 Bw.Write((uint)tempS.Length + 1);
                 BwText.Write(tempS);
                 Bw.Write((byte)0x0);
-
             }
         }
 
-        private static string TranslatedSpeaker(string Speaker) {
-            switch (Speaker)
-            {
-                default:
-                    break;
-                case "MOTHER":
-                    Speaker = "MADRE";
-                    break;
-                case "MR. ANDRESS":
-                    Speaker = "SIG. ANDRESS";
-                    break;
-                case "PROGENARIAN":
-                    Speaker = "PROGENITO";
-                    break;
-                case "BASTION SOLDIER":
-                    Speaker = "SOLDATO DEL BASTIONE";
-                    break;
-                case "CONCERN SOLDIER":
-                    Speaker = "SOLDATO DELLA CONCERN";
-                    break;
-                case "CORNER DARK":
-                    Speaker = "TRIGONO OSCURO";
-                    break;
-                case "CORNER LIGHT":
-                    Speaker = "TRIGONO CHIARO";
-                    break;
-                case "CITY STAR":
-                    Speaker = "STAR﻿";
-                    break;
-                case "CITY DUNNER":
-                    Speaker = "DUNNER";
-                    break;
-                case "CITY TONY":
-                    Speaker = "TONY";
-                    break;
-                case "CITY JIANI":
-                    Speaker = "JIANI";
-                    break;
-                case "CITY TILDA":
-                    Speaker = "TILDA";
-                    break;
-                case "CITY MECHANIC":
-                    Speaker = "MECCANICO";
-                    break;
-                case "CITY BRIDGE":
-                    Speaker = "BRIDGE";
-                    break;
-                case "THOR DAUGHTER":
-                    Speaker = "FIGLIA DI THOR";
-                    break;
-                case "GATEKEEPER PETE":
-                    Speaker = "GUARDIANO PIETRO";
-                    break;
-                case "ISI SCIENTIST":
-                    Speaker = "SCIENZIATO ISI";
-                    break;
-                case "ELITE SOLDIER":
-                    Speaker = "SOLDATO ÉLITE";
-                    break;
-                case "ELITE":
-                    Speaker = "ÉLITE";
-                    break;
-                case "ELITE 1":
-                    Speaker = "ÉLITE 1";
-                    break;
-                case "ELITE 2":
-                    Speaker = "ÉLITE 2";
-                    break;
-                case "MECHANIC":
-                    Speaker = "MECCANICO";
-                    break;
-                case "CHEMICO CHEMIST":
-                    Speaker = "SCIENZIATO CHEMICO";
-                    break;
-            }
-
-            return Speaker;
-        }
-
-        private string EncodeString(string Sentence)
+        private string StringEncoder(string sentence)
         {
-            Sentence = Sentence.Replace("\n", "{new}");
+            sentence = sentence.Replace("\n", "{new}");
 
-            string EncondeSentence = string.Empty;
+            string encondedSentence = string.Empty;
             bool isCode = false;
 
-            foreach (char x in Sentence)
+            foreach (char x in sentence)
             {
                 if (x == '{')
                 {
@@ -273,35 +196,33 @@ namespace Iconoclast
                 }
                 else if (x == '}')
                 {
-                    EncondeSentence += "}|";
+                    encondedSentence += "}|";
                     isCode = false;
                     continue;
                 }
 
                 if (isCode)
                 {
-
-                    if (EncondeSentence.Length > 1 && x == '{' && EncondeSentence[^1] == '一')
+                    if (encondedSentence.Length > 1 && x == '{' && encondedSentence[^1] == '一')
                     {
-                        EncondeSentence += '|';
+                        encondedSentence += '|';
                     }
 
-                    EncondeSentence += x;
-
+                    encondedSentence += x;
                 }
                 else
                 {
                     int pos = System.Array.LastIndexOf(Rose.Stone, x.ToString());
-                    EncondeSentence += pos.ToString() + "|".Replace("\\\\", "\\").Replace("一", "\\");
+                    encondedSentence += pos.ToString() + "|".Replace("\\\\", "\\").Replace("一", "\\");
                 }
             }
 
-            if (EncondeSentence[^1] == '|')
+            if (encondedSentence[^1] == '|')
             {
-                EncondeSentence = EncondeSentence.Remove(startIndex: EncondeSentence.Length - 1);
+                encondedSentence = encondedSentence.Remove(startIndex: encondedSentence.Length - 1);
             }
 
-            return EncondeSentence.Replace("\\\\", "\\").Replace("一", "\\");
+            return encondedSentence.Replace("\\\\", "\\").Replace("一", "\\");
         }
     }
 }
